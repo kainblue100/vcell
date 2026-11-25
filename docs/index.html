@@ -21,12 +21,12 @@
 <body>
 <main>
 <h1>虚拟细胞和 STATE 的对照</h1>
-<p>对照细胞集合加一个扰动标签，模型预测扰动后的表达。训练对齐的是能量距离。下面的分数是 cell-eval 对留出细胞系的均值，种子都是 42。对照模型是官方 STATE-sm，用的是同一套留出和同一套评分。</p>
+<p>对照细胞集合加一个扰动标签，模型预测扰动后的表达。训练对齐的是能量距离。下面第一张表里的 state_sm 是我们用官方 CLI 从随机初始化重训的，2 万步，种子 42，评分用的是 final.ckpt，没有加载官方权重。</p>
 <p class="when">协议对齐 <span>state tx predict</span>：profile=full，跳过 pearson_edistance 和 clustering_agreement，预测和真实都裁到 0 到 14。基因是 2000 个高变基因。一次只留出 K562 或 RPE1。先验用的是 K562 的公开表观数据，所以 RPE1 是跨细胞系。仓库里只有这些汇总表，没有权重，也没有逐细胞矩阵。</p>
 <h2>目前最好的一次</h2>
-<p>每一行只保留我们四次训练里更好的那一次，再和 STATE 比。10 万步并没有在每一项上都超过 2 万步。</p>
+<p>每一行只保留我们四次训练里更好的那一次，再和这次重训的 state_sm 比。10 万步并没有在每一项上都超过 2 万步。这不是和官方最好权重的比较。</p>
 <table>
-<thead><tr><th>留出</th><th>指标</th><th>最好的一次</th><th>分数</th><th>STATE</th><th>和 STATE 比</th></tr></thead>
+<thead><tr><th>留出</th><th>指标</th><th>最好的一次</th><th>分数</th><th>重训 state_sm</th><th>和这次重训比</th></tr></thead>
 <tbody>
 <tr><td>K562</td><td>表达变化相关<br><span class="when">越高越好</span></td><td>候选网络，2 万步</td><td class="num">0.2564</td><td class="num">0.0644</td><td>更好</td></tr>
 <tr><td>K562</td><td>均方误差<br><span class="when">越低越好</span></td><td>顺式元件，2 万步</td><td class="num">0.0049</td><td class="num">0.0391</td><td>更好</td></tr>
@@ -49,7 +49,7 @@
 <h2>四次训练放在一起</h2>
 <p>2 万步的三次是隐藏维 512、4 层、批大小 16。10 万步是候选网络，隐藏维 1024、8 层、约 1.12 亿参数、批大小 64。留出细胞系不参与该次训练。</p>
 <table>
-<thead><tr><th>留出</th><th>指标</th><th>无先验，2 万步</th><th>候选网络，2 万步</th><th>顺式元件，2 万步</th><th>候选网络，10 万步</th><th>STATE</th></tr></thead>
+<thead><tr><th>留出</th><th>指标</th><th>无先验，2 万步</th><th>候选网络，2 万步</th><th>顺式元件，2 万步</th><th>候选网络，10 万步</th><th>重训 state_sm</th></tr></thead>
 <tbody>
 <tr><td>K562</td><td>表达变化相关</td><td class="num">0.2452</td><td class="num">0.2564</td><td class="num">0.2474</td><td class="num">0.2473</td><td class="num">0.0644</td></tr>
 <tr><td>K562</td><td>均方误差</td><td class="num">0.0050</td><td class="num">0.0049</td><td class="num">0.0049</td><td class="num">0.0050</td><td class="num">0.0391</td></tr>
@@ -67,7 +67,43 @@
 <tr><td>RPE1</td><td>显著基因秩相关</td><td class="num">0.2711</td><td class="num">0.4400</td><td class="num">0.2349</td><td class="num">0.3308</td><td class="num">0.4530</td></tr>
 </tbody></table>
 <h2>这页没有写进去的</h2>
-<p>Tahoe 和 Orion 上的三头效应模型还在训练。它的损失不是 cell-eval，没有放进这两张表。权重、逐细胞预测和原始计数也不在这个仓库里。</p>
+<h2>官方最好权重的已公布评分</h2>
+<p>Arc 把 Replogle fewshot 的 best.ckpt 和它的 cell-eval 表放在 <a href="https://huggingface.co/arcinstitute/ST-HVG-Replogle">ST-HVG-Replogle</a>。K562 与 RPE1 都是 X_hvg、隐藏维 328、10 万步，评分检查点是 best.ckpt。我们没有把这个权重在自己的测试细胞上重跑。扰动数也不一样：官方 K562 968 个、RPE1 1061 个；我们的表是 K562 913 个、RPE1 899 个。所以下面只能并排放公布的均值，不能当成同一批细胞上的配对胜负。</p>
+<table>
+<thead><tr><th>留出</th><th>指标</th><th>我们最好</th><th>官方 best.ckpt</th></tr></thead>
+<tbody>
+<tr><td>K562</td><td>表达变化相关</td><td class="num">0.2564</td><td class="num">0.3638</td></tr>
+<tr><td>K562</td><td>均方误差</td><td class="num">0.0049</td><td class="num">0.0045</td></tr>
+<tr><td>K562</td><td>扰动判别</td><td class="num">0.6438</td><td class="num">0.7576</td></tr>
+<tr><td>K562</td><td>差异基因重叠</td><td class="num">0.0980</td><td class="num">0.2184</td></tr>
+<tr><td>K562</td><td>变化方向一致</td><td class="num">0.7415</td><td class="num">0.7470</td></tr>
+<tr><td>K562</td><td>显著基因召回</td><td class="num">0.4886</td><td class="num">0.2605</td></tr>
+<tr><td>RPE1</td><td>表达变化相关</td><td class="num">0.4789</td><td class="num">0.4891</td></tr>
+<tr><td>RPE1</td><td>均方误差</td><td class="num">0.0128</td><td class="num">0.0097</td></tr>
+<tr><td>RPE1</td><td>扰动判别</td><td class="num">0.6516</td><td class="num">0.7288</td></tr>
+<tr><td>RPE1</td><td>差异基因重叠</td><td class="num">0.2628</td><td class="num">0.2465</td></tr>
+<tr><td>RPE1</td><td>变化方向一致</td><td class="num">0.7696</td><td class="num">0.7608</td></tr>
+<tr><td>RPE1</td><td>显著基因召回</td><td class="num">0.6663</td><td class="num">0.2724</td></tr>
+</tbody>
+</table>
+<p class="when">均方误差越低越好，其余越高越好。表达相关、均方误差、判别和 K562 的重叠，公布的官方权重更高。显著基因召回，以及 RPE1 的重叠和方向一致，我们这一格更高。官方表里的 de_spearman_sig 在每个扰动上都是同一个常数，没有放进这张表。</p>
+<h2>2026 挑战赛冠军 CellularAI</h2>
+<p><a href="https://github.com/Illumina/CellularAI">CellularAI</a> 是 2026 年虚拟细胞挑战赛的冠军算法。它预测的是三个几乎没有公开扰动数据的细胞系（AC16、MOLM13、U-87MG）里 300 个 CRISPRi 敲低，评分是 cell-eval2 的六项，每项在该细胞系里把对照均值标成 0、实验重复的一半标成 1，再对六项和三个细胞系取平均。这不是 Replogle 的 cell-eval，也不能和上面的 0.2564 相减。</p>
+<p>训练摘要来自 Illumina Billion Cell Atlas，需要另行申请，仓库里没有这套数据，所以这里没有重跑。下面是 Arc 2026-11-19 公布的测试集分数。</p>
+<table>
+<thead><tr><th>指标</th><th>CellularAI</th><th>第二名 FlowState</th><th>第三名 X-team</th></tr></thead>
+<tbody>
+<tr><td>总平均</td><td class="num">0.4399</td><td class="num">0.3348</td><td class="num">0.3263</td></tr>
+<tr><td>PDS</td><td class="num">0.8313</td><td class="num">0.8363</td><td class="num">0.7346</td></tr>
+<tr><td>MSE</td><td class="num">0.6842</td><td class="num">0.3632</td><td class="num">0.4681</td></tr>
+<tr><td>NMAE</td><td class="num">0.4399</td><td class="num">0.3286</td><td class="num">0.3038</td></tr>
+<tr><td>FIDELITY</td><td class="num">0.1908</td><td class="num">0.1695</td><td class="num">0.0659</td></tr>
+<tr><td>REACH</td><td class="num">0.4288</td><td class="num">0.3128</td><td class="num">0.3186</td></tr>
+<tr><td>JACCARD</td><td class="num">0.0642</td><td class="num">-0.0018</td><td class="num">0.0667</td></tr>
+</tbody>
+</table>
+<p class="when">Arc Institute，2026-11-19，<a href="https://arcinstitute.org/news/virtual-cell-challenge-2026-wrap-up">Virtual Cell Challenge 2026: Winners and Wrap-Up</a>。MSE 在每个细胞系里被限制在 0 到 1。JACCARD 上第三名 0.0667 高于冠军。</p>
+<p>Tahoe 和 Orion 上的三头效应模型还在训练。它的损失不是 cell-eval，没有放进这些表。权重、逐细胞预测和原始计数也不在这个仓库里。</p>
 <p class="when"><a href="https://kainblue100.github.io/ongoing/">回到四项进行中的工作</a></p>
 </main>
 </body>
